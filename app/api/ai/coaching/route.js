@@ -10,7 +10,6 @@ export async function POST(request) {
   try {
     const { kru_id } = await request.json();
 
-    // Dapatkan data performa tes kru dari database
     const { data: ujian } = await supabase
       .from('sesi_ujian')
       .select('skor, status, divisi, minggu')
