@@ -138,7 +138,7 @@ export default function Dashboard() {
       </div>
 
       {activeTab === 'kru' && (
-        <div className="bg-surface p-5 rounded-2xl border border-redTrans shadow-xl">
+        <div className="bg-surface p-5 rounded-2xl border border-red-950/20 shadow-xl">
           <h2 className="text-sm font-extrabold text-crimson mb-4 uppercase tracking-wider">Status Pelatihan Karyawan</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
@@ -172,7 +172,7 @@ export default function Dashboard() {
       )}
 
       {activeTab === 'evaluasi' && (
-        <div className="bg-surface p-5 rounded-2xl border border-redTrans space-y-4 shadow-xl">
+        <div className="bg-surface p-5 rounded-2xl border border-red-950/20 space-y-4 shadow-xl">
           <h2 className="text-sm font-extrabold text-crimson uppercase tracking-wider">Evaluasi Lapangan SOP Objektif</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
