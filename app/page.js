@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '../lib/supabaseClient';
 import { useRouter } from 'next/navigation';
-import { playHotsSound } from '@/lib/audio';
+import { playHotsSound } from '../lib/audio';
 
 export default function Home() {
   const router = useRouter();
@@ -39,10 +39,10 @@ export default function Home() {
     setKruList(kruData || []);
   }
 
-  function handleMasuk() {
+  function handleMasuk(targetScreen) {
     playHotsSound('tap');
     if (!selectedOutlet || !selectedKru) {
-      alert("Harap pilih Outlet dan Nama Anda!");
+      alert("Harap pilih Outlet dan Nama Anda terlebih dahulu!");
       return;
     }
     const targetKru = kruList.find(k => k.id === selectedKru);
@@ -51,11 +51,11 @@ export default function Home() {
     localStorage.setItem('hots_kru_divisi', targetKru.divisi);
     localStorage.setItem('hots_kru_minggu', targetKru.minggu_aktif);
     localStorage.setItem('hots_outlet_id', selectedOutlet);
-    router.push('/exam');
+    router.push(targetScreen);
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-4">
+    <div className="flex flex-col items-center justify-center min-h-screen px-4 bg-deep">
       <div className="w-full max-w-md bg-surface p-6 rounded-2xl border border-redTrans shadow-2xl">
         <div className="text-center mb-6">
           <span className="text-4xl">🍗</span>
@@ -96,11 +96,26 @@ export default function Home() {
               </select>
             </div>
 
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button 
+                onClick={() => handleMasuk('/exam')}
+                className="bg-crimson hover:bg-red-700 text-white font-bold p-3.5 rounded-xl transition duration-150 uppercase text-xs tracking-wider"
+              >
+                📝 Ambil CBT
+              </button>
+              <button 
+                onClick={() => handleMasuk('/piket')}
+                className="bg-gold hover:bg-yellow-600 text-deep font-bold p-3.5 rounded-xl transition duration-150 uppercase text-xs tracking-wider"
+              >
+                🧹 Lapor Piket
+              </button>
+            </div>
+
             <button 
-              onClick={handleMasuk}
-              className="w-full bg-crimson hover:bg-red-700 text-white font-bold p-4 rounded-xl transition duration-150 uppercase text-sm tracking-wider"
+              onClick={() => router.push('/dashboard')}
+              className="w-full bg-surface border border-gray-800 text-gray-400 font-bold p-3 rounded-xl transition duration-150 uppercase text-xs tracking-wider mt-2"
             >
-              Masuk Sesi Kerja
+              🔒 Ruang Kerja Trainer
             </button>
           </div>
         )}
