@@ -10,17 +10,15 @@ export async function POST(request) {
   try {
     const { kru_id, piket_area_id, foto_url } = await request.json();
 
-    // Tarik nama area piket dari DB
     const { data: area } = await supabase
       .from('hots_piket_areas')
       .select('nama_area')
       .eq('id', piket_area_id)
       .single();
 
-    let aiScore = 80; // Default fallback score
+    let aiScore = 80; 
     let aiFeedback = "Foto area terdeteksi cukup bersih dan rapi sesuai standar.";
 
-    // Pemrosesan model vision Gemini AI
     if (process.env.GEMINI_API_KEY) {
       try {
         const prompt = `Analisis tingkat kebersihan area "${area.nama_area}" dari foto berikut. Berikan nilai kebersihan dengan skala integer 1 sampai 100 dan berikan catatan evaluasi singkat dalam format JSON: {"skor": 90, "catatan": "Kondisi sangat bersih, lantai kering"}`;
@@ -51,7 +49,6 @@ export async function POST(request) {
         const aiData = await response.json();
         const responseText = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
         
-        // Parsing output JSON aman dari Gemini
         const jsonMatch = responseText.match(/\{.*\}/s);
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
@@ -63,7 +60,6 @@ export async function POST(request) {
       }
     }
 
-    // Rekam log pengerjaan ke database
     await supabase.from('log_piket').insert([{
       kru_id: kru_id,
       piket_area_id: piket_area_id,
