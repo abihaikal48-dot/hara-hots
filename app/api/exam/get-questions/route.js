@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY // Bypass RLS untuk pemrosesan backend
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 export async function POST(request) {
@@ -18,7 +18,7 @@ export async function POST(request) {
 
     if (error) throw error;
 
-    // Acak urutan soal (fisher-yates algorithm)
+    // Pengacakan soal dinamis di sisi server
     const shuffled = (questions || []).sort(() => Math.random() - 0.5);
 
     return NextResponse.json({ questions: shuffled });
