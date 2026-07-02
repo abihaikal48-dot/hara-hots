@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { playHotsSound } from '../../lib/audio';
+import Navigation from '../../components/Navigation';
 
 export default function PiketPage() {
   const [kru, setKru] = useState([]);
@@ -15,16 +16,20 @@ export default function PiketPage() {
 
   useEffect(() => {
     async function loadForm() {
-      const { data: k } = await supabase.from('kru').select('*');
-      const { data: a } = await supabase.from('hots_piket_areas').select('*');
-      setKru(k || []);
-      setAreas(a || []);
+      try {
+        const { data: k } = await supabase.from('kru').select('*');
+        const { data: a } = await supabase.from('hots_piket_areas').select('*');
+        setKru(k || []);
+        setAreas(a || []);
+      } catch (err) {
+        console.error("Gagal memuat parameter piket:", err);
+      }
     }
     loadForm();
   }, []);
 
   function handleFileChange(e) {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (file) {
       setFoto(file);
       const reader = new FileReader();
@@ -83,18 +88,19 @@ export default function PiketPage() {
   }
 
   return (
-    <div className="p-4 max-w-lg mx-auto bg-deep">
-      <div className="bg-surface p-6 rounded-2xl border border-redTrans shadow-2xl">
-        <h1 className="text-xl font-black text-crimson mb-2 uppercase">Laporan Piket Kebersihan</h1>
-        <p className="text-xs text-gray-400 mb-6 leading-relaxed">Laporkan hasil penugasan kebersihan area harian untuk dianalisis instan oleh Vision AI.</p>
+    <div className="p-4 max-w-lg mx-auto bg-deep min-h-screen animate-fade-in">
+      <div className="bg-surface p-6 rounded-2xl border border-redTrans shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-24 h-24 bg-gold/5 rounded-full filter blur-2xl" />
+        <h1 className="text-xl font-black text-crimson mb-2 uppercase tracking-wide">Piket Kebersihan</h1>
+        <p className="text-xs text-gray-400 mb-6 leading-relaxed">Selesaikan tugas kebersihan lalu unggah foto bukti area untuk dievaluasi oleh Vision AI.</p>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-xs uppercase text-gray-400 font-bold mb-1">Nama Kru Piket</label>
+            <label className="block text-[10px] uppercase text-gray-400 font-bold mb-1.5 tracking-wider">Nama Kru Piket</label>
             <select 
               value={selectedKru}
               onChange={(e) => setSelectedKru(e.target.value)}
-              className="w-full bg-deep border border-gray-800 p-3 rounded-lg text-white"
+              className="w-full bg-deep border border-gray-800 p-3.5 rounded-xl text-white focus:outline-none focus:border-crimson transition-all"
             >
               <option value="">-- Pilih Nama --</option>
               {kru.map(k => (
@@ -104,11 +110,11 @@ export default function PiketPage() {
           </div>
 
           <div>
-            <label className="block text-xs uppercase text-gray-400 font-bold mb-1">Area Penugasan</label>
+            <label className="block text-[10px] uppercase text-gray-400 font-bold mb-1.5 tracking-wider">Area Penugasan</label>
             <select 
               value={selectedArea}
               onChange={(e) => setSelectedArea(e.target.value)}
-              className="w-full bg-deep border border-gray-800 p-3 rounded-lg text-white"
+              className="w-full bg-deep border border-gray-800 p-3.5 rounded-xl text-white focus:outline-none focus:border-crimson transition-all"
             >
               <option value="">-- Pilih Area --</option>
               {areas.map(a => (
@@ -118,27 +124,28 @@ export default function PiketPage() {
           </div>
 
           <div>
-            <label className="block text-xs uppercase text-gray-400 font-bold mb-1">Ambil Foto Bukti</label>
+            <label className="block text-[10px] uppercase text-gray-400 font-bold mb-1.5 tracking-wider">Bukti Foto Fisik</label>
             <input 
               type="file" 
               accept="image/*" 
               onChange={handleFileChange} 
-              className="w-full bg-deep border border-gray-800 p-3 rounded-lg text-white mb-2"
+              className="w-full bg-deep border border-gray-800 p-3.5 rounded-xl text-white mb-2 text-xs"
             />
             {preview && (
-              <img src={preview} alt="Pratinjau Foto" className="w-full max-h-48 object-cover rounded-xl mt-2 border border-gray-800" />
+              <img src={preview} alt="Pratinjau Foto" className="w-full max-h-48 object-cover rounded-xl mt-3 border border-gray-800" />
             )}
           </div>
 
           <button 
             onClick={handleLapor}
             disabled={uploading}
-            className="w-full bg-crimson hover:bg-red-700 text-white font-bold p-4 rounded-xl transition duration-150 uppercase text-sm tracking-wider"
+            className="w-full bg-crimson hover:bg-red-700 text-white font-extrabold p-4 rounded-xl transition duration-150 uppercase text-xs tracking-wider disabled:opacity-40"
           >
             {uploading ? 'Mengunggah & Mengevaluasi...' : 'Kirim Laporan Piket'}
           </button>
         </div>
       </div>
+      <Navigation />
     </div>
   );
 }
