@@ -2,16 +2,14 @@ import './globals.css';
 
 export const metadata = {
   title: 'HOTS - Hara Operational & Training System',
-  description: 'Sistem Operasional dan CBT Pelatihan Kru Hara Chicken',
+  description: 'Hara Chicken Management Platform',
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="id">
-      <body className="bg-deep text-white antialiased select-none">
-        <main className="min-h-screen pb-24">
-          {children}
-        </main>
+      <body className="bg-[#070101] text-white">
+        {children}
       </body>
     </html>
   );
