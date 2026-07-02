@@ -66,7 +66,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-4 bg-deep animate-fade-in">
-      <div className="w-full max-w-md bg-surface p-6 rounded-2xl border border-redTrans shadow-2xl animate-pulse-glow">
+      <div className="w-full max-w-md bg-surface p-6 rounded-2xl border border-red-900/10 shadow-2xl animate-pulse-glow">
         <div className="flex flex-col items-center mb-6">
           <Logo size={104} />
           <h1 className="text-2xl font-black text-crimson mt-4 tracking-wide">TES SOP</h1>
@@ -85,7 +85,7 @@ export default function Home() {
               <select 
                 value={selectedOutlet}
                 onChange={handleOutletChange}
-                className="w-full bg-deep border border-gray-800 p-3 rounded-xl text-white focus:outline-none focus:border-crimson transition-all"
+                className="w-full bg-deep border border-gray-800 p-3.5 rounded-xl text-white focus:outline-none focus:border-crimson transition-all"
               >
                 <option value="">-- Pilih Outlet --</option>
                 {outlets.map(o => (
@@ -100,7 +100,7 @@ export default function Home() {
                 value={selectedKru}
                 onChange={(e) => setSelectedKru(e.target.value)}
                 disabled={!selectedOutlet}
-                className="w-full bg-deep border border-gray-800 p-3 rounded-xl text-white focus:outline-none focus:border-crimson disabled:opacity-40 transition-all"
+                className="w-full bg-deep border border-gray-800 p-3.5 rounded-xl text-white focus:outline-none focus:border-crimson disabled:opacity-40 transition-all"
               >
                 <option value="">-- Pilih Nama Anda --</option>
                 {kruList.map(k => (
