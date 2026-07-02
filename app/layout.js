@@ -1,8 +1,8 @@
-import './globals.css';
+import '@/app/globals.css';
 
 export const metadata = {
   title: 'HOTS - Hara Operational & Training System',
-  description: 'Hara Chicken Management Platform',
+  description: 'Hara Chicken Training & Operations Management Platform',
 };
 
 export default function RootLayout({ children }) {
