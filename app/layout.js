@@ -8,8 +8,8 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="id">
-      <body className="bg-deep text-white antialiased">
-        <main className="min-h-screen pb-20 select-none">
+      <body className="bg-deep text-white antialiased select-none">
+        <main className="min-h-screen pb-24">
           {children}
         </main>
       </body>
