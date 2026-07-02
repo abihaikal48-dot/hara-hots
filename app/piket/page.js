@@ -89,7 +89,7 @@ export default function PiketPage() {
 
   return (
     <div className="p-4 max-w-lg mx-auto bg-deep min-h-screen animate-fade-in">
-      <div className="bg-surface p-6 rounded-2xl border border-redTrans shadow-2xl relative overflow-hidden">
+      <div className="bg-surface p-6 rounded-2xl border border-red-950/20 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 left-0 w-24 h-24 bg-gold/5 rounded-full filter blur-2xl" />
         <h1 className="text-xl font-black text-crimson mb-2 uppercase tracking-wide">Piket Kebersihan</h1>
         <p className="text-xs text-gray-400 mb-6 leading-relaxed">Selesaikan tugas kebersihan lalu unggah foto bukti area untuk dievaluasi oleh Vision AI.</p>
