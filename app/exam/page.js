@@ -1,111 +1,147 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
-import { playHotsSound } from '@/lib/audio';
+import { playHotsSound, startLofiAmbient, stopLofiAmbient } from '@/lib/audio';
 
-export default function Home() {
+export default function ExamPage() {
   const router = useRouter();
-  const [outlets, setOutlets] = useState([]);
-  const [kruList, setKruList] = useState([]);
-  const [selectedOutlet, setSelectedOutlet] = useState('');
-  const [selectedKru, setSelectedKru] = useState('');
+  const [kru, setKru] = useState(null);
+  const [soal, setSoal] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [jawaban, setJawaban] = useState({});
+  const [durasi, setDurasi] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function initPortal() {
-      try {
-        const { data: outletData } = await supabase.from('outlets').select('*').eq('is_active', true);
-        setOutlets(outletData || []);
-      } catch (err) {
-        console.error("Gagal memuat outlet:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    initPortal();
-  }, []);
-
-  async function handleOutletChange(e) {
-    const oId = e.target.value;
-    setSelectedOutlet(oId);
-    setSelectedKru('');
-    if (!oId) {
-      setKruList([]);
+    const kId = localStorage.getItem('hots_kru_id');
+    if (!kId) {
+      router.push('/');
       return;
     }
-    const { data: kruData } = await supabase.from('kru').select('*').eq('outlet_id', oId);
-    setKruList(kruData || []);
-  }
+    setKru({
+      id: kId,
+      nama: localStorage.getItem('hots_kru_nama'),
+      divisi: localStorage.getItem('hots_kru_divisi'),
+      minggu: localStorage.getItem('hots_kru_minggu'),
+    });
 
-  function handleMasuk() {
+    async function loadSoal() {
+      const res = await fetch('/api/exam/get-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          divisi: localStorage.getItem('hots_kru_divisi'),
+          minggu: localStorage.getItem('hots_kru_minggu')
+        })
+      });
+      const data = await res.json();
+      setSoal(data.questions || []);
+      setLoading(false);
+      startLofiAmbient();
+    }
+    loadSoal();
+
+    const interval = setInterval(() => {
+      setDurasi(prev => prev + 1);
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+      stopLofiAmbient();
+    };
+  }, [router]);
+
+  function pilihOpsi(opsi) {
     playHotsSound('tap');
-    if (!selectedOutlet || !selectedKru) {
-      alert("Harap pilih Outlet dan Nama Anda!");
-      return;
-    }
-    const targetKru = kruList.find(k => k.id === selectedKru);
-    localStorage.setItem('hots_kru_id', targetKru.id);
-    localStorage.setItem('hots_kru_nama', targetKru.nama);
-    localStorage.setItem('hots_kru_divisi', targetKru.divisi);
-    localStorage.setItem('hots_kru_minggu', targetKru.minggu_aktif);
-    localStorage.setItem('hots_outlet_id', selectedOutlet);
-    router.push('/exam');
+    setJawaban({ ...jawaban, [soal[currentIndex].id]: opsi });
   }
+
+  function handleNext() {
+    if (currentIndex < soal.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      submitUjian();
+    }
+  }
+
+  async function submitUjian() {
+    playHotsSound('success');
+    setLoading(true);
+    const res = await fetch('/api/exam/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        kru_id: kru.id,
+        divisi: kru.divisi,
+        minggu: kru.minggu,
+        jawaban: jawaban,
+        durasi: durasi
+      })
+    });
+    const result = await res.json();
+    alert(`Hasil Ujian: Skor ${result.score}% - ${result.passed ? 'LULUS' : 'REMEDIAL'}`);
+    localStorage.clear();
+    router.push('/');
+  }
+
+  if (loading) {
+    return <div className="flex min-h-screen items-center justify-center text-gold font-bold">Menyiapkan Lembar Soal Ujian...</div>;
+  }
+
+  const q = soal[currentIndex];
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-4">
-      <div className="w-full max-w-md bg-surface p-6 rounded-2xl border border-redTrans shadow-2xl">
-        <div className="text-center mb-6">
-          <span className="text-4xl">🍗</span>
-          <h1 className="text-2xl font-black text-crimson mt-2 tracking-wide">HOTS PORTAL</h1>
-          <p className="text-xs text-gray-500 uppercase tracking-widest">Hara Operational & Training System</p>
+    <div className="p-4 max-w-lg mx-auto">
+      <div className="flex justify-between items-center mb-4 bg-surface p-3 rounded-xl border border-redTrans">
+        <div>
+          <h2 className="text-sm font-bold text-crimson">{kru?.nama}</h2>
+          <p className="text-[10px] text-gray-400 uppercase">{kru?.divisi} - Minggu {kru?.minggu}</p>
         </div>
-
-        {loading ? (
-          <div className="text-center text-gold py-4 font-bold">Memuat portal sistem...</div>
-        ) : (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs uppercase text-gray-400 font-bold mb-1">Pilih Outlet Kerja</label>
-              <select 
-                value={selectedOutlet}
-                onChange={handleOutletChange}
-                className="w-full bg-deep border border-gray-800 p-3 rounded-lg text-white focus:outline-none focus:border-crimson"
-              >
-                <option value="">-- Pilih Outlet --</option>
-                {outlets.map(o => (
-                  <option key={o.id} value={o.id}>{o.nama}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs uppercase text-gray-400 font-bold mb-1">Nama Karyawan</label>
-              <select 
-                value={selectedKru}
-                onChange={(e) => setSelectedKru(e.target.value)}
-                disabled={!selectedOutlet}
-                className="w-full bg-deep border border-gray-800 p-3 rounded-lg text-white focus:outline-none focus:border-crimson disabled:opacity-50"
-              >
-                <option value="">-- Pilih Nama --</option>
-                {kruList.map(k => (
-                  <option key={k.id} value={k.id}>{k.nama} ({k.divisi})</option>
-                ))}
-              </select>
-            </div>
-
-            <button 
-              onClick={handleMasuk}
-              className="w-full bg-crimson hover:bg-red-700 text-white font-bold p-4 rounded-xl transition duration-150 uppercase text-sm tracking-wider"
-            >
-              Masuk Sesi Kerja
-            </button>
-          </div>
-        )}
+        <div className="text-right">
+          <span className="text-[10px] text-gray-400 block font-bold">WAKTU BERJALAN</span>
+          <span className="font-mono text-gold text-sm">{Math.floor(durasi / 60)}m {durasi % 60}s</span>
+        </div>
       </div>
-      <p className="text-center text-[10px] text-gray-600 mt-6 font-semibold uppercase tracking-wider">Hara Chicken Corp · Omni System V41</p>
+
+      <div className="mb-4">
+        <div className="w-full bg-gray-900 h-1 rounded-full overflow-hidden">
+          <div 
+            className="bg-crimson h-full transition-all duration-300"
+            style={{ width: `${((currentIndex + 1) / soal.length) * 100}%` }}
+          />
+        </div>
+        <p className="text-right text-[10px] text-gray-500 mt-1">Soal {currentIndex + 1} dari {soal.length}</p>
+      </div>
+
+      <div className="bg-surface p-5 rounded-2xl border border-redTrans shadow-xl mb-6">
+        <span className="text-xs uppercase bg-red-950 text-crimson px-2.5 py-1 rounded-md font-bold inline-block mb-3">SOP {q?.topik}</span>
+        <h3 className="text-base font-bold leading-relaxed">{q?.pertanyaan}</h3>
+      </div>
+
+      <div className="space-y-3">
+        {[q?.opsi_a, q?.opsi_b, q?.opsi_c, q?.opsi_d].map((o, idx) => {
+          const isSelected = jawaban[q.id] === o;
+          return (
+            <button 
+              key={idx}
+              onClick={() => pilihOpsi(o)}
+              className={`w-full text-left p-4 rounded-xl border transition ${
+                isSelected ? 'bg-crimson/10 border-crimson text-white font-bold' : 'bg-surface border-gray-900 text-gray-300'
+              }`}
+            >
+              {o}
+            </button>
+          );
+        })}
+      </div>
+
+      <button 
+        onClick={handleNext}
+        className="w-full bg-crimson hover:bg-red-700 text-white font-bold p-4 rounded-xl transition duration-150 uppercase mt-8 tracking-wider"
+      >
+        {currentIndex === soal.length - 1 ? 'Kumpulkan Ujian' : 'Soal Berikutnya'}
+      </button>
     </div>
   );
 }
