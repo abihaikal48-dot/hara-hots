@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { playHotsSound, startLofiAmbient, stopLofiAmbient } from '@/lib/audio';
+import { playHotsSound, startLofiAmbient, stopLofiAmbient } from '../../lib/audio';
 
 export default function ExamPage() {
   const router = useRouter();
@@ -27,18 +27,23 @@ export default function ExamPage() {
     });
 
     async function loadSoal() {
-      const res = await fetch('/api/exam/get-questions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          divisi: localStorage.getItem('hots_kru_divisi'),
-          minggu: localStorage.getItem('hots_kru_minggu')
-        })
-      });
-      const data = await res.json();
-      setSoal(data.questions || []);
-      setLoading(false);
-      startLofiAmbient();
+      try {
+        const res = await fetch('/api/exam/get-questions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            divisi: localStorage.getItem('hots_kru_divisi'),
+            minggu: localStorage.getItem('hots_kru_minggu')
+          })
+        });
+        const data = await res.json();
+        setSoal(data.questions || []);
+      } catch (err) {
+        console.error("Gagal menarik data bank soal.");
+      } finally {
+        setLoading(false);
+        startLofiAmbient();
+      }
     }
     loadSoal();
 
@@ -68,25 +73,39 @@ export default function ExamPage() {
   async function submitUjian() {
     playHotsSound('success');
     setLoading(true);
-    const res = await fetch('/api/exam/submit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        kru_id: kru.id,
-        divisi: kru.divisi,
-        minggu: kru.minggu,
-        jawaban: jawaban,
-        durasi: durasi
-      })
-    });
-    const result = await res.json();
-    alert(`Hasil Ujian: Skor ${result.score}% - ${result.passed ? 'LULUS' : 'REMEDIAL'}`);
-    localStorage.clear();
-    router.push('/');
+    try {
+      const res = await fetch('/api/exam/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kru_id: kru.id,
+          divisi: kru.divisi,
+          minggu: kru.minggu,
+          jawaban: jawaban,
+          durasi: durasi
+        })
+      });
+      const result = await res.json();
+      alert(`Hasil Ujian: Skor ${result.score}% - ${result.passed ? 'LULUS (Siap Naik Siklus)' : 'REMEDIAL'}`);
+    } catch (err) {
+      alert("Terjadi masalah saat mengirim lembar jawaban.");
+    } finally {
+      localStorage.clear();
+      router.push('/');
+    }
   }
 
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center text-gold font-bold">Menyiapkan Lembar Soal Ujian...</div>;
+  }
+
+  if (soal.length === 0) {
+    return (
+      <div className="flex flex-col min-h-screen items-center justify-center p-6 text-center">
+        <p className="text-gray-400 mb-4">Bank soal belum diisi oleh Trainer untuk divisi dan minggu ini.</p>
+        <button onClick={() => router.push('/')} className="bg-crimson px-6 py-3 rounded-lg font-bold">Kembali ke Beranda</button>
+      </div>
+    );
   }
 
   const q = soal[currentIndex];
