@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
-import { playHotsSound } from '@/lib/audio';
+import { supabase } from '../../lib/supabaseClient';
+import { playHotsSound } from '../../lib/audio';
 
 export default function PiketPage() {
   const [kru, setKru] = useState([]);
@@ -47,46 +47,46 @@ export default function PiketPage() {
     const fileName = `${Date.now()}.${fileExt}`;
     const filePath = `piket/${fileName}`;
 
-    // Upload foto ke Supabase Storage (Minta admin membuat bucket bernama 'piket-photos' terlebih dahulu)
-    const { error: uploadError } = await supabase.storage
-      .from('piket-photos')
-      .upload(filePath, foto);
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from('piket-photos')
+        .upload(filePath, foto);
 
-    if (uploadError) {
-      alert("Gagal mengunggah foto.");
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('piket-photos')
+        .getPublicUrl(filePath);
+
+      const res = await fetch('/api/piket/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kru_id: selectedKru,
+          piket_area_id: selectedArea,
+          foto_url: publicUrlData.publicUrl
+        })
+      });
+
+      const result = await res.json();
+      alert(`Laporan Piket Berhasil Dikirim! Skor AI Kebersihan: ${result.ai_score}/100. Catatan AI: ${result.ai_feedback}`);
+      setSelectedKru('');
+      setSelectedArea('');
+      setFoto(null);
+      setPreview('');
+    } catch (err) {
+      console.error(err);
+      alert("Terjadi kesalahan teknis saat mengirim data piket.");
+    } finally {
       setUploading(false);
-      return;
     }
-
-    const { data: publicUrlData } = supabase.storage
-      .from('piket-photos')
-      .getPublicUrl(filePath);
-
-    // Kirim data ke API serverless untuk diproses Gemini Vision AI
-    const res = await fetch('/api/piket/log', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        kru_id: selectedKru,
-        piket_area_id: selectedArea,
-        foto_url: publicUrlData.publicUrl
-      })
-    });
-
-    const result = await res.json();
-    setUploading(false);
-    alert(`Laporan Piket Berhasil Dikirim! Skor AI Kebersihan: ${result.ai_score}/100. Catatan AI: ${result.ai_feedback}`);
-    setSelectedKru('');
-    setSelectedArea('');
-    setFoto(null);
-    setPreview('');
   }
 
   return (
-    <div className="p-4 max-w-lg mx-auto">
+    <div className="p-4 max-w-lg mx-auto bg-deep">
       <div className="bg-surface p-6 rounded-2xl border border-redTrans shadow-2xl">
         <h1 className="text-xl font-black text-crimson mb-2 uppercase">Laporan Piket Kebersihan</h1>
-        <p className="text-xs text-gray-400 mb-6 leading-relaxed">Laporkan hasil pengerjaan piket area dengan bukti foto harian untuk dinilai langsung oleh AI.</p>
+        <p className="text-xs text-gray-400 mb-6 leading-relaxed">Laporkan hasil penugasan kebersihan area harian untuk dianalisis instan oleh Vision AI.</p>
 
         <div className="space-y-4">
           <div>
@@ -118,7 +118,7 @@ export default function PiketPage() {
           </div>
 
           <div>
-            <label className="block text-xs uppercase text-gray-400 font-bold mb-1">Foto Bukti Fisik</label>
+            <label className="block text-xs uppercase text-gray-400 font-bold mb-1">Ambil Foto Bukti</label>
             <input 
               type="file" 
               accept="image/*" 
