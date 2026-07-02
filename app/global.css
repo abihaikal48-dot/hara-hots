@@ -7,11 +7,8 @@ body {
   color: #fff;
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   min-height: 100vh;
-  margin: 0;
-  padding: 0;
 }
 
-/* Kustomisasi scrollbar halus */
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
