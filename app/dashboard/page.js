@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
-import { playHotsSound } from '@/lib/audio';
+import { supabase } from '../../lib/supabaseClient';
+import { playHotsSound } from '../../lib/audio';
 
 export default function Dashboard() {
   const [kru, setKru] = useState([]);
@@ -58,8 +58,8 @@ export default function Dashboard() {
     const percentage = totalItems > 0 ? (checkedItems / totalItems) * 100 : 0;
 
     let skorSkala = 1;
-    if (percentage === 100) skorSkala = 3; // Sempurna
-    else if (percentage >= 70) skorSkala = 2; // Cukup
+    if (percentage === 100) skorSkala = 3; 
+    else if (percentage >= 70) skorSkala = 2; 
 
     try {
       const { data: logData, error: logError } = await supabase
@@ -84,7 +84,6 @@ export default function Dashboard() {
 
       await supabase.from('hots_log_praktik_checklists').insert(checklistInserts);
 
-      // Trigger evaluasi kelayakan All-Rounder
       await triggerAllRounderEvaluation(selectedKru);
 
       alert("Penilaian praktik objektif berhasil disimpan!");
@@ -109,34 +108,34 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-4 max-w-4xl mx-auto">
+    <div className="p-4 max-w-4xl mx-auto bg-deep min-h-screen">
       <div className="flex border-b border-gray-800 mb-6">
         <button 
           onClick={() => setActiveTab('kru')}
           className={`flex-1 py-3 text-center text-sm font-bold ${activeTab === 'kru' ? 'text-crimson border-b-2 border-crimson' : 'text-gray-400'}`}
         >
-          Kru List & Roster
+          Daftar Kru
         </button>
         <button 
           onClick={() => setActiveTab('evaluasi')}
           className={`flex-1 py-3 text-center text-sm font-bold ${activeTab === 'evaluasi' ? 'text-crimson border-b-2 border-crimson' : 'text-gray-400'}`}
         >
-          Evaluasi Praktik
+          Penilaian Praktik SOP
         </button>
       </div>
 
       {activeTab === 'kru' && (
         <div className="bg-surface p-5 rounded-2xl border border-redTrans">
-          <h2 className="text-lg font-black text-crimson mb-4">DAFTAR KRU & STATUS TRAINING</h2>
+          <h2 className="text-lg font-black text-crimson mb-4 uppercase">Status Pelatihan Karyawan</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-gray-800 text-gray-400 uppercase font-black">
                   <th className="py-2">Nama</th>
                   <th className="py-2">Divisi</th>
-                  <th className="py-2">Minggu</th>
+                  <th className="py-2">Siklus Kerja</th>
                   <th className="py-2">Status</th>
-                  <th className="py-2">All-Rounder</th>
+                  <th className="py-2">Sertifikasi</th>
                 </tr>
               </thead>
               <tbody>
@@ -145,8 +144,10 @@ export default function Dashboard() {
                     <td className="py-3 font-bold text-white">{k.nama}</td>
                     <td className="py-3 text-gray-300">{k.divisi}</td>
                     <td className="py-3 text-gold">M{k.minggu_aktif}</td>
-                    <td className="py-3"><span className="bg-red-950 text-crimson px-2 py-0.5 rounded font-bold">{k.status}</span></td>
-                    <td className="py-3">{k.is_all_rounder ? '👑 All-Rounder' : 'No'}</td>
+                    <td className="py-3">
+                      <span className="bg-red-950 text-crimson px-2.5 py-0.5 rounded font-bold">{k.status}</span>
+                    </td>
+                    <td className="py-3 text-xs">{k.is_all_rounder ? '👑 All-Rounder' : 'Reguler'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -157,11 +158,11 @@ export default function Dashboard() {
 
       {activeTab === 'evaluasi' && (
         <div className="bg-surface p-5 rounded-2xl border border-redTrans space-y-4">
-          <h2 className="text-lg font-black text-crimson">FORM PENILAIAN PRAKTIK</h2>
+          <h2 className="text-lg font-black text-crimson uppercase">Evaluasi Lapangan Objektif</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs uppercase text-gray-400 font-bold mb-1">Pilih Kru</label>
+              <label className="block text-xs uppercase text-gray-400 font-bold mb-1">Kru yang Dievaluasi</label>
               <select 
                 value={selectedKru}
                 onChange={(e) => setSelectedKru(e.target.value)}
@@ -175,7 +176,7 @@ export default function Dashboard() {
             </div>
 
             <div>
-              <label className="block text-xs uppercase text-gray-400 font-bold mb-1">Topik SOP</label>
+              <label className="block text-xs uppercase text-gray-400 font-bold mb-1">Materi SOP Fisik</label>
               <select 
                 value={selectedSop}
                 onChange={handleSopChange}
@@ -191,7 +192,7 @@ export default function Dashboard() {
 
           {rubrik.length > 0 && (
             <div className="mt-6 border-t border-gray-800 pt-4">
-              <h3 className="text-sm font-bold text-gold uppercase mb-3">Butir Kriteria Penilaian SOP</h3>
+              <h3 className="text-sm font-bold text-gold uppercase mb-3">Butir Checklist Kritis SOP</h3>
               <div className="space-y-3">
                 {rubrik.map(item => (
                   <div key={item.id} className="flex items-center justify-between p-3 bg-deep rounded-lg border border-gray-900">
@@ -199,7 +200,7 @@ export default function Dashboard() {
                     <button 
                       onClick={() => toggleCheck(item.id)}
                       className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${
-                        checklists[item.id] ? 'bg-emerald-900 text-emerald-400 border border-emerald-700' : 'bg-red-950 text-crimson border border-red-900'
+                        checklists[item.id] ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-red-950 text-crimson border border-red-900'
                       }`}
                     >
                       {checklists[item.id] ? 'LULUS (YA)' : 'GAGAL (TIDAK)'}
@@ -211,13 +212,13 @@ export default function Dashboard() {
           )}
 
           <div>
-            <label className="block text-xs uppercase text-gray-400 font-bold mb-1">Catatan Evaluasi Lapangan</label>
+            <label className="block text-xs uppercase text-gray-400 font-bold mb-1">Catatan Tambahan Evaluasi Lapangan</label>
             <textarea 
               value={catatan}
               onChange={(e) => setCatatan(e.target.value)}
               className="w-full bg-deep border border-gray-800 p-3 rounded-lg text-white"
               rows="3"
-              placeholder="Berikan masukan kritis atau pujian..."
+              placeholder="Tuliskan feedback taktis..."
             />
           </div>
 
@@ -226,7 +227,7 @@ export default function Dashboard() {
             disabled={saving || rubrik.length === 0}
             className="w-full bg-crimson hover:bg-red-700 text-white font-bold p-4 rounded-xl transition duration-150 uppercase text-sm tracking-wider disabled:opacity-50"
           >
-            {saving ? 'Menyimpan...' : 'Simpan & Evaluasi Kelulusan'}
+            {saving ? 'Menyimpan evaluasi...' : 'Simpan Nilai Evaluasi'}
           </button>
         </div>
       )}
