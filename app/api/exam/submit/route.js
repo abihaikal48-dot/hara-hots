@@ -10,7 +10,6 @@ export async function POST(request) {
   try {
     const { kru_id, divisi, minggu, jawaban, durasi } = await request.json();
 
-    // Ambil soal asli dari DB untuk validasi kunci
     const { data: questions } = await supabase
       .from('bank_soal')
       .select('*')
@@ -22,7 +21,7 @@ export async function POST(request) {
 
     questions.forEach(q => {
       const userAns = jawaban[q.id];
-      const isCorrect = userAns === q.opsi_a; // Opsi A selalu menjadi kunci di database admin
+      const isCorrect = userAns === q.opsi_a; 
 
       if (isCorrect) correctCount++;
 
@@ -37,9 +36,8 @@ export async function POST(request) {
     });
 
     const score = Math.round((correctCount / questions.length) * 100);
-    const passed = score >= 70; // Passing grade 70%
+    const passed = score >= 70; 
 
-    // Rekam sesi ujian utama
     const { data: session, error: sessError } = await supabase
       .from('sesi_ujian')
       .insert([{
@@ -55,14 +53,12 @@ export async function POST(request) {
 
     if (sessError) throw sessError;
 
-    // Rekam detail jawaban kuesioner
     const inserts = detailRows.map(row => ({
       sesi_ujian_id: session.id,
       ...row
     }));
     await supabase.from('jawaban_detail').insert(inserts);
 
-    // Update status kru jika lulus
     if (passed) {
       let nextStatus = 'Siap Naik M2';
       let nextM = parseInt(minggu);
