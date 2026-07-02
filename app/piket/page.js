@@ -1,151 +1,110 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabaseClient';
-import { playHotsSound } from '../../lib/audio';
-import Navigation from '../../components/Navigation';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
+import { playHotsSound } from '@/hooks/useHotsAudio';
 
 export default function PiketPage() {
-  const [kru, setKru] = useState([]);
-  const [areas, setAreas] = useState([]);
-  const [selectedKru, setSelectedKru] = useState('');
-  const [selectedArea, setSelectedArea] = useState('');
-  const [foto, setFoto] = useState(null);
-  const [preview, setPreview] = useState('');
-  const [uploading, setUploading] = useState(false);
+  const router = useRouter();
+  const [kru, setKru] = useState(null);
+  const [assignedArea, setAssignedArea] = useState(null);
+  const [fotoB64, setFotoB64] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    async function loadForm() {
-      try {
-        const { data: k } = await supabase.from('kru').select('*');
-        const { data: a } = await supabase.from('hots_piket_areas').select('*');
-        setKru(k || []);
-        setAreas(a || []);
-      } catch (err) {
-        console.error("Gagal memuat parameter piket:", err);
-      }
-    }
-    loadForm();
-  }, []);
-
-  function handleFileChange(e) {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFoto(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  }
-
-  async function handleLapor() {
-    playHotsSound('tap');
-    if (!selectedKru || !selectedArea || !foto) {
-      alert("Harap lengkapi Kru, Area Piket, dan Bukti Foto!");
+    const active = localStorage.getItem('hots_active_kru');
+    if (!active) {
+      router.push('/');
       return;
     }
+    const parsedKru = JSON.parse(active);
+    setKru(parsedKru);
 
-    setUploading(true);
-    const fileExt = foto.name.split('.').pop();
-    const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = `piket/${fileName}`;
+    async function detectPiketArea() {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: roster } = await supabase
+        .from('hots_shift_roster')
+        .select('*, hots_piket_areas(*)')
+        .eq('kru_id', parsedKru.id)
+        .eq('tanggal', today)
+        .single();
+
+      if (roster && roster.hots_piket_areas) {
+        setAssignedArea(roster.hots_piket_areas);
+      } else {
+        setAssignedArea({ id: 'a1', nama_area: 'Halaman Depan', warna_kode: 'Hijau' });
+      }
+    }
+    detectPiketArea();
+  }, [router]);
+
+  const handleCapturePhoto = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setFotoB64(ev.target.result.split(',')[1]);
+      playHotsSound('tap');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmitPiket = async () => {
+    if (!fotoB64) {
+      alert("Ambil foto bukti kebersihan area.");
+      return;
+    }
+    setIsLoading(true);
+    playHotsSound('tap');
 
     try {
-      const { error: uploadError } = await supabase.storage
-        .from('piket-photos')
-        .upload(filePath, foto);
-
-      if (uploadError) throw uploadError;
-
-      const { data: publicUrlData } = supabase.storage
-        .from('piket-photos')
-        .getPublicUrl(filePath);
-
       const res = await fetch('/api/piket/log', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          kru_id: selectedKru,
-          piket_area_id: selectedArea,
-          foto_url: publicUrlData.publicUrl
+          kruId: kru.id,
+          areaId: assignedArea.id,
+          areaNama: assignedArea.nama_area,
+          fotoBase64: fotoB64,
+          mimeType: 'image/jpeg'
         })
       });
-
       const result = await res.json();
-      alert(`Laporan Piket Berhasil Dikirim! Skor AI Kebersihan: ${result.ai_score}/100. Catatan AI: ${result.ai_feedback}`);
-      setSelectedKru('');
-      setSelectedArea('');
-      setFoto(null);
-      setPreview('');
-    } catch (err) {
-      console.error(err);
-      alert("Terjadi kesalahan teknis saat mengirim data piket.");
+      playHotsSound('success');
+      alert(`Piket Berhasil!\nSkor Kebersihan AI: ${result.skor_ai}`);
+      router.push('/');
+    } catch (e) {
+      alert("Gagal memproses piket.");
     } finally {
-      setUploading(false);
+      setIsLoading(false);
     }
-  }
+  };
+
+  if (!kru || !assignedArea) return null;
 
   return (
-    <div className="p-4 max-w-lg mx-auto bg-deep min-h-screen animate-fade-in">
-      <div className="bg-surface p-6 rounded-2xl border border-red-950/20 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-24 h-24 bg-gold/5 rounded-full filter blur-2xl" />
-        <h1 className="text-xl font-black text-crimson mb-2 uppercase tracking-wide">Piket Kebersihan</h1>
-        <p className="text-xs text-gray-400 mb-6 leading-relaxed">Selesaikan tugas kebersihan lalu unggah foto bukti area untuk dievaluasi oleh Vision AI.</p>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-[10px] uppercase text-gray-400 font-bold mb-1.5 tracking-wider">Nama Kru Piket</label>
-            <select 
-              value={selectedKru}
-              onChange={(e) => setSelectedKru(e.target.value)}
-              className="w-full bg-deep border border-gray-800 p-3.5 rounded-xl text-white focus:outline-none focus:border-crimson transition-all"
-            >
-              <option value="">-- Pilih Nama --</option>
-              {kru.map(k => (
-                <option key={k.id} value={k.id}>{k.nama}</option>
-              ))}
-            </select>
+    <main className="min-h-screen bg-[#070101] text-white p-4 max-w-md mx-auto py-8 flex flex-col justify-between">
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-base font-black uppercase">LAPORAN KEBERSIHAN</h2>
+          <p className="text-xs text-gray-500 mt-1">Area Penugasan:</p>
+          <div className="mt-3 p-4 bg-[#120303] border border-red-950/30 rounded-2xl">
+            <span className="text-xs font-black text-white">{assignedArea.nama_area}</span>
           </div>
+        </div>
 
-          <div>
-            <label className="block text-[10px] uppercase text-gray-400 font-bold mb-1.5 tracking-wider">Area Penugasan</label>
-            <select 
-              value={selectedArea}
-              onChange={(e) => setSelectedArea(e.target.value)}
-              className="w-full bg-deep border border-gray-800 p-3.5 rounded-xl text-white focus:outline-none focus:border-crimson transition-all"
-            >
-              <option value="">-- Pilih Area --</option>
-              {areas.map(a => (
-                <option key={a.id} value={a.id}>{a.nama_area}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-[10px] uppercase text-gray-400 font-bold mb-1.5 tracking-wider">Bukti Foto Fisik</label>
-            <input 
-              type="file" 
-              accept="image/*" 
-              onChange={handleFileChange} 
-              className="w-full bg-deep border border-gray-800 p-3.5 rounded-xl text-white mb-2 text-xs"
-            />
-            {preview && (
-              <img src={preview} alt="Pratinjau Foto" className="w-full max-h-48 object-cover rounded-xl mt-3 border border-gray-800" />
-            )}
-          </div>
-
-          <button 
-            onClick={handleLapor}
-            disabled={uploading}
-            className="w-full bg-crimson hover:bg-red-700 text-white font-extrabold p-4 rounded-xl transition duration-150 uppercase text-xs tracking-wider disabled:opacity-40"
-          >
-            {uploading ? 'Mengunggah & Mengevaluasi...' : 'Kirim Laporan Piket'}
-          </button>
+        <div className="bg-[#120303] border border-gray-900 p-6 rounded-2xl text-center space-y-4">
+          <input type="file" accept="image/*" capture="environment" onChange={handleCapturePhoto} className="hidden" id="piket-input" />
+          <label htmlFor="piket-input" className="inline-block cursor-pointer px-5 py-2.5 bg-[#1B0606] border border-gray-800 text-xs font-black uppercase rounded-xl transition-all">
+            {fotoB64 ? 'Ganti Foto' : 'Ambil Foto'}
+          </label>
         </div>
       </div>
-      <Navigation />
-    </div>
+
+      <button onClick={handleSubmitPiket} className="w-full bg-[#D42B2B] hover:bg-red-700 text-white font-bold py-4 rounded-xl text-xs uppercase tracking-widest mt-6" disabled={isLoading}>
+        Kirim Laporan Piket
+      </button>
+    </main>
   );
 }
