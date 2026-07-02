@@ -123,7 +123,7 @@ export default function ExamPage() {
 
   return (
     <div className="p-4 max-w-lg mx-auto bg-deep min-h-screen animate-fade-in">
-      <div className="flex justify-between items-center mb-4 bg-surface p-4 rounded-2xl border border-redTrans shadow-md">
+      <div className="flex justify-between items-center mb-4 bg-surface p-4 rounded-2xl border border-red-950/20 shadow-md">
         <div>
           <h2 className="text-sm font-extrabold text-white">{kru?.nama}</h2>
           <p className="text-[10px] text-gray-500 uppercase font-black tracking-wider mt-0.5">{kru?.divisi} · Minggu {kru?.minggu}</p>
@@ -146,7 +146,7 @@ export default function ExamPage() {
         <p className="text-right text-[10px] text-gray-500 mt-1.5 font-bold">Soal {currentIndex + 1} dari {soal.length}</p>
       </div>
 
-      <div className="bg-surface p-6 rounded-2xl border border-redTrans shadow-xl mb-6 relative overflow-hidden">
+      <div className="bg-surface p-6 rounded-2xl border border-red-950/20 shadow-xl mb-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-24 h-24 bg-crimson/5 rounded-full filter blur-xl" />
         <span className="text-[10px] tracking-wider uppercase bg-red-950 text-crimson border border-crimson/25 px-2.5 py-1 rounded-lg font-black inline-block mb-3.5">
           SOP {q?.topik}
